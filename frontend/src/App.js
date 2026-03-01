@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { AlertTriangle, Zap } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Dashboard from './pages/Dashboard';
@@ -12,6 +12,7 @@ import { INITIAL_ROOMS, BASE_URL } from './data/mockData';
 
 const AC_COOL = 24, AC_HEAT = 28;
 const LIGHT_THRESH = 300;
+const h = React.createElement;
 
 function runACFSM(room) {
   if (!room.presence) return 'OFF';
@@ -50,22 +51,27 @@ function simStep(room) {
   return updated;
 }
 
-// energyByRoom shape: { room_id: { ac, light, total } }
-function mapRoom(r, energyByRoom = {}) {
-  const energy24h = Math.round((energyByRoom[r.room_id]?.total ?? r.energy_24h ?? 0) * 1000) / 1000;
+/** Maps a backend room_status object to the frontend room shape.
+ *  Key field corrections vs original code:
+ *    r.occupancy  (was: r.pir / r.occupied)
+ *    r.light      (was: r.ldr)
+ *    r.name       (was: r.room_id for display name)
+ */
+function mapRoom(r) {
+  const energy24h = r.energy_24h ?? 0;
   const efficiency = r.efficiency ?? 75;
   return {
     id: r.room_id,
     name: r.name ?? r.room_id,
     temperature: r.temperature ?? 25,
     targetTemp: r.base_temp ?? 22,
-    presence: Boolean(r.occupancy),          // backend returns 0/1 OR true/false
+    presence: r.occupancy === true,
     lightLevel: r.light ?? 300,
     acState: r.ac_state ?? 'OFF',
     lightState: r.light_state ?? 'OFF',
     lightBrightness: r.light_on ? 80 : 0,
     energy24h,
-    estimatedCost: energy24h * 68,           // NGN (tariff ₦68/kWh)
+    estimatedCost: energy24h * 0.2,
     efficiencyScore: efficiency,
     efficiencyLabel: efficiency >= 90 ? 'EXCELLENT' : efficiency >= 70 ? 'GOOD' : 'POOR',
     _acOverride: r.ac_override !== 'auto' && r.ac_override !== undefined,
@@ -77,16 +83,6 @@ async function fetchStatus() {
   const res = await fetch(`${BASE_URL}/api/status`);
   if (!res.ok) throw new Error('API offline');
   return res.json();
-}
-
-async function fetchEnergy() {
-  try {
-    const res = await fetch(`${BASE_URL}/api/energy`);
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
 }
 
 async function postTick(steps = 1) {
@@ -110,55 +106,33 @@ async function postOverride(roomId, appliance, mode) {
 }
 
 export default function App() {
-  const [rooms, setRooms]       = useState(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState(INITIAL_ROOMS);
   const [autoMode, setAutoMode] = useState(false);
   const [apiOnline, setApiOnline] = useState(false);
-  const [loading, setLoading]   = useState(true);
   const autoRef = useRef(autoMode);
   autoRef.current = autoMode;
 
-  // Initial load
   useEffect(() => {
-    Promise.all([fetchStatus(), fetchEnergy()])
-      .then(([statusData, energyData]) => {
-        if (statusData?.rooms) {
-          const energyByRoom = energyData?.energy_by_room ?? {};
-          setRooms(statusData.rooms.map(r => mapRoom(r, energyByRoom)));
+    fetchStatus()
+      .then((data) => {
+        if (data?.rooms) {
+          setRooms(data.rooms.map(mapRoom));
           setApiOnline(true);
         }
       })
-      .catch(() => setApiOnline(false))
-      .finally(() => setLoading(false));
+      .catch(() => setApiOnline(false));
   }, []);
-
-  // Reconnect loop — polls every 5 s while the banner is showing
-  useEffect(() => {
-    if (apiOnline || loading) return;
-    const id = setInterval(() => {
-      Promise.all([fetchStatus(), fetchEnergy()])
-        .then(([statusData, energyData]) => {
-          if (statusData?.rooms) {
-            const energyByRoom = energyData?.energy_by_room ?? {};
-            setRooms(statusData.rooms.map(r => mapRoom(r, energyByRoom)));
-            setApiOnline(true);
-          }
-        })
-        .catch(() => {});
-    }, 5000);
-    return () => clearInterval(id);
-  }, [apiOnline, loading]);
 
   const tick = useCallback(async () => {
     if (apiOnline) {
       try {
-        const [tickData, energyData] = await Promise.all([postTick(1), fetchEnergy()]);
-        if (tickData?.state) {
-          const energyByRoom = energyData?.energy_by_room ?? {};
+        const data = await postTick(1);
+        if (data?.state) {
           setRooms((prev) =>
             prev.map((room) => {
-              const d = tickData.state[room.id];
+              const d = data.state[room.id];
               if (!d) return room;
-              return mapRoom(d, energyByRoom);
+              return mapRoom({ ...d, energy_24h: room.energy24h, efficiency: room.efficiencyScore });
             })
           );
         }
@@ -168,7 +142,7 @@ export default function App() {
       }
     }
     setRooms((prev) => prev.map(simStep));
-  }, [apiOnline]);
+  }, [rooms, apiOnline]);
 
   useEffect(() => {
     if (!autoMode) return;
@@ -216,41 +190,23 @@ export default function App() {
     );
   }, [rooms, apiOnline]);
 
-  /* Loading screen while connecting */
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="loading-inner">
-          <div className="loading-pulse">
-            <Zap size={32} color="#F59E0B" fill="#F59E0B" strokeWidth={2} />
-          </div>
-          <p>Starting SHEMS…</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="layout">
-      <Sidebar apiOnline={apiOnline} />
-      <div className="main">
-        <Topbar onTick={tick} autoMode={autoMode} setAutoMode={setAutoMode} />
-        {!apiOnline && (
-          <div className="api-warn">
-            <AlertTriangle size={13} strokeWidth={2} />
-            Simulation mode — Flask backend not reachable at {BASE_URL}
-          </div>
-        )}
-        <div className="page">
-          <Routes>
-            <Route path="/"           element={<Dashboard rooms={rooms} onOverride={handleOverride} />} />
-            <Route path="/comparison" element={<RoomComparison rooms={rooms} />} />
-            <Route path="/analytics"  element={<EnergyAnalytics rooms={rooms} />} />
-            <Route path="/settings"   element={<SystemSettings rooms={rooms} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
-            <Route path="/room/:id"   element={<RoomDetail rooms={rooms} onOverride={handleOverride} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
-          </Routes>
-        </div>
-      </div>
-    </div>
+  return h('div', { className: 'layout' },
+    h(Sidebar, null),
+    h('div', { className: 'main' },
+      h(Topbar, { onTick: tick, autoMode, setAutoMode }),
+      !apiOnline && h('div', { className: 'api-warn' },
+        h(AlertTriangle, { size: 13 }),
+        `Running in simulation mode \u2014 Flask backend not reachable at ${BASE_URL}`
+      ),
+      h('div', { className: 'page' },
+        h(Routes, null,
+          h(Route, { path: '/', element: h(Dashboard, { rooms, onOverride: handleOverride }) }),
+          h(Route, { path: '/comparison', element: h(RoomComparison, { rooms }) }),
+          h(Route, { path: '/analytics', element: h(EnergyAnalytics, { rooms }) }),
+          h(Route, { path: '/settings', element: h(SystemSettings, { rooms, apiOnline, baseUrl: BASE_URL }) }),
+          h(Route, { path: '/room/:id', element: h(RoomDetail, { rooms, onOverride: handleOverride, apiOnline, baseUrl: BASE_URL }) })
+        )
+      )
+    )
   );
 }

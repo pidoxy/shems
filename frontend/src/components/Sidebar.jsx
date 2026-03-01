@@ -8,11 +8,11 @@ const links = [
   { to: '/settings',   Icon: Settings,         label: 'System Settings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ apiOnline }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <Zap size={18} color="#F59E0B" fill="#F59E0B" />
+        <Zap size={16} color="#F59E0B" fill="#F59E0B" strokeWidth={2} />
         <span>SHEMS</span>
       </div>
       <nav className="sidebar-nav">
@@ -29,7 +29,8 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="sidebar-footer">
-        SHEMS v1.0.2 · Connected
+        <span className={`status-dot ${apiOnline ? 'online' : 'offline'}`} />
+        <span className="footer-text">v1.0.2 · {apiOnline ? 'Live' : 'Simulation'}</span>
       </div>
     </aside>
   );

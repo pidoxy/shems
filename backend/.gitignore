@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database (generated at runtime)
+shems.db
+
+# Environment
+.env
+.env.local
+
+# macOS
+.DS_Store

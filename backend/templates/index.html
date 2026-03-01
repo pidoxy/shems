@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHEMS Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f4f7fc;
+      --panel: #ffffff;
+      --line: #e4e7ec;
+      --text: #101828;
+      --muted: #667085;
+      --blue: #2e90fa;
+      --blue-dark: #1570ef;
+      --green: #17b26a;
+      --orange: #f79009;
+      --red: #f04438;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Inter", sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 500px at 5% -10%, #e9f3ff 0%, #f4f7fc 55%, #fbfdff 100%);
+    }
+    .page { max-width: 1360px; margin: 0 auto; padding: 24px; display: grid; gap: 14px; }
+    .panel, .header-row {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(16,24,40,.05); padding: 18px;
+    }
+    .header-row { display: flex; justify-content: space-between; align-items: center; }
+    h1,h2,h3,p { margin: 0; }
+    h1 { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+    h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+    .sub { margin-top: 6px; color: var(--muted); font-size: 14px; }
+    .top-controls { display: flex; gap: 8px; }
+    .btn {
+      border-radius: 12px; border: 1px solid var(--line); background: white; padding: 10px 14px;
+      font-weight: 700; font-size: 13px; color: var(--text); cursor: pointer;
+    }
+    .btn:hover { border-color: #b2ddff; background: #eff8ff; }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    .btn.primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+    .tag {
+      display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px;
+      font-size: 12px; font-weight: 700;
+    }
+    .tag.ok { color: #027a48; background: #d1fadf; }
+    .tag.idle { color: #344054; background: #eaecf0; }
+    .panel-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .panel-head p, .muted { color: var(--muted); margin-top: 4px; font-size: 14px; }
+
+    .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .setting-card {
+      border: 1px solid var(--line); border-radius: 16px; padding: 14px;
+      background: linear-gradient(180deg,#fff 0%,#f9fbff 100%);
+    }
+    .setting-title { display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .kv {
+      display: flex; justify-content: space-between; align-items: center; border: 1px solid #eaecf0;
+      border-radius: 12px; padding: 10px; margin-bottom: 8px;
+    }
+    .kv span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .kv strong { font-size: 18px; }
+    .kv input {
+      width: 90px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      padding: 4px 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .range { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    .range div { height: 6px; border-radius: 999px; background: linear-gradient(90deg,#9fd6ff 0%,#2e90fa 70%,#f79009 100%); }
+    .gradient-bar { margin-top: 6px; height: 6px; border-radius: 999px; background: linear-gradient(90deg,#344054 0%,#98a2b3 40%,#facc15 100%); }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th,td { border-bottom: 1px solid #eaecf0; text-align: left; padding: 12px; font-size: 14px; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .mini-toggle {
+      border: 1px solid #b2ddff; border-radius: 999px; background: #eff8ff; color: #175cd3;
+      font-weight: 700; padding: 6px 10px; cursor: pointer;
+    }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+    .kpi { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: white; }
+    .kpi span { color: var(--muted); font-weight: 600; font-size: 13px; }
+    .kpi strong { display: block; margin-top: 8px; font-size: 32px; letter-spacing: -.02em; }
+
+    .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .chart-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: white; }
+    .chart-card h3 { margin-bottom: 8px; }
+
+    .efficiency-card { border: 1px solid var(--line); border-radius: 14px; background: white; padding: 12px; margin-bottom: 12px; }
+    .eff-row,.eff-line { display: flex; justify-content: space-between; align-items: center; }
+    .eff-line { margin: 10px 0 6px; }
+    .eff-line span { color: var(--muted); font-weight: 700; }
+    .bar { width: 100%; height: 16px; border-radius: 999px; background: #f2f4f7; border: 1px solid #eaecf0; overflow: hidden; }
+    .bar div { height: 100%; }
+    .bar.red div { background: repeating-linear-gradient(45deg,var(--red),var(--red) 8px,#ff776d 8px,#ff776d 16px); }
+    .bar.green div { background: linear-gradient(90deg,#12b76a,#039855); }
+
+    .live-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .live-room { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: white; }
+    .live-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .live-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .live-metrics div { border: 1px solid #eaecf0; border-radius: 10px; padding: 10px; }
+    .live-metrics span { color: var(--muted); font-size: 11px; display: block; text-transform: uppercase; }
+    .live-metrics strong { font-size: 20px; }
+    .live-appliance {
+      display: flex; justify-content: space-between; align-items: center;
+      border: 1px solid #eaecf0; border-radius: 10px; padding: 10px; margin-bottom: 8px;
+    }
+    .mini {
+      border: 1px solid #d0d5dd; border-radius: 8px; background: #fff;
+      padding: 5px 8px; margin-left: 4px; font-size: 12px; cursor: pointer;
+    }
+
+    @media (max-width: 1200px) {
+      .settings-grid,.kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .chart-row,.live-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .page { padding: 12px; }
+      .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .settings-grid,.kpi-grid,.live-metrics { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+      h2 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="header-row">
+      <div>
+        <h1>⚡ SHEMS Dashboard</h1>
+        <p class="sub" id="simTime">Simulated time: --</p>
+      </div>
+      <div class="top-controls">
+        <button class="btn" id="stepBtn">Step</button>
+        <button class="btn" id="runBtn">Run 24h</button>
+        <button class="btn primary" id="autoBtn">Auto: ON</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>System Settings</h2>
+          <p>Manage thresholds, automation rules, and tariff configuration.</p>
+        </div>
+        <button class="btn" id="saveSettingsBtn">Save Settings</button>
+      </div>
+      <div class="settings-grid">
+        <article class="setting-card">
+          <div class="setting-title"><strong>AC Control</strong><span class="tag ok">Active</span></div>
+          <div class="kv"><span>Lower limit</span><strong><input id="acLowerInput" type="number" min="16" max="35" step="0.1" value="24"></strong></div>
+          <div class="kv"><span>Upper limit</span><strong><input id="acUpperInput" type="number" min="18" max="45" step="0.1" value="28"></strong></div>
+          <div class="range"><span>16°C</span><div></div><span>32°C</span></div>
+        </article>
+        <article class="setting-card">
+          <div class="setting-title"><strong>Lighting Control</strong><span class="tag ok">Active</span></div>
+          <div class="kv"><span>Minimum light</span><strong><input id="lightThresholdInput" type="number" min="0" max="1023" step="1" value="300"> lux</strong></div>
+          <div class="kv"><span>Mode</span><strong>Occupied AND Dark</strong></div>
+          <div class="gradient-bar"></div>
+        </article>
+        <article class="setting-card">
+          <div class="setting-title"><strong>Tariff Config</strong></div>
+          <div class="kv"><span>Tariff Band</span><strong>Band A</strong></div>
+          <div class="kv"><span>Cost per Unit</span><strong>₦ <input id="tariffInput" type="number" min="1" step="0.01" value="68.00"> / kWh</strong></div>
+          <div class="muted">Last updated: 09:00 AM utility rate</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Room Configurations</h2>
+          <p>Individual automation and override controls for connected rooms.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Room Name</th><th>Base Temp</th><th>AC Auto</th><th>Lights Auto</th><th>Status</th></tr>
+          </thead>
+          <tbody id="roomTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Energy Analytics</h2>
+          <p>Smart Home Energy Management System</p>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <article class="kpi"><span>Total Consumption</span><strong id="kpiTotal">0.00 kWh</strong></article>
+        <article class="kpi"><span>Estimated Cost</span><strong id="kpiCost">₦0</strong></article>
+        <article class="kpi"><span>AC Usage</span><strong id="kpiAc">0.00 kWh</strong></article>
+        <article class="kpi"><span>Lighting Usage</span><strong id="kpiLight">0.00 kWh</strong></article>
+      </div>
+      <div class="chart-row">
+        <article class="chart-card"><h3>Energy by Room</h3><canvas id="roomEnergyChart"></canvas></article>
+        <article class="chart-card"><h3>Consumption Breakdown</h3><canvas id="splitChart"></canvas></article>
+      </div>
+      <article class="efficiency-card">
+        <div class="eff-row"><h3>Efficiency Analysis</h3><span class="tag ok" id="saveTag">You saved 0%</span></div>
+        <div class="eff-line"><span>Without SHEMS</span><strong id="withoutShems">0.00 kWh</strong></div>
+        <div class="bar red"><div style="width:100%"></div></div>
+        <div class="eff-line"><span>With SHEMS</span><strong id="withShems">0.00 kWh</strong></div>
+        <div class="bar green"><div id="withBar" style="width:0%"></div></div>
+      </article>
+      <article class="chart-card"><h3>24h Temperature Trend</h3><canvas id="tempTrendChart"></canvas></article>
+    </section>
+
+    <section class="panel live-grid" id="liveRooms"></section>
+  </main>
+
+<script>
+const ROOM_ORDER = ["living_room", "bedroom", "kitchen", "study_room"];
+let autoRun = true;
+let ticker = null;
+let roomConfigMap = {};
+
+async function getJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function postJson(url, payload) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {})
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+const roomEnergyChart = new Chart(document.getElementById("roomEnergyChart"), {
+  type: "bar",
+  data: {
+    labels: ROOM_ORDER,
+    datasets: [
+      { label: "AC", data: [], backgroundColor: "#2E90FA", borderRadius: 8 },
+      { label: "Lighting", data: [], backgroundColor: "#F79009", borderRadius: 8 }
+    ]
+  },
+  options: { responsive: true, plugins: { legend: { position: "top" } } }
+});
+
+const splitChart = new Chart(document.getElementById("splitChart"), {
+  type: "doughnut",
+  data: {
+    labels: ["Air Conditioner", "Lighting"],
+    datasets: [{ data: [0, 0], backgroundColor: ["#2E90FA", "#F79009"], borderWidth: 0 }]
+  },
+  options: { responsive: true, cutout: "70%" }
+});
+
+const tempTrendChart = new Chart(document.getElementById("tempTrendChart"), {
+  type: "line",
+  data: { labels: [], datasets: [] },
+  options: { responsive: true, plugins: { legend: { position: "top" } } }
+});
+
+async function setOverride(roomId, appliance, mode) {
+  await postJson("/api/override", { room_id: roomId, appliance, mode });
+  await refresh();
+}
+
+async function saveSettings() {
+  const payload = {
+    ac_lower_threshold: Number(document.getElementById("acLowerInput").value),
+    ac_upper_threshold: Number(document.getElementById("acUpperInput").value),
+    light_threshold: Number(document.getElementById("lightThresholdInput").value),
+    tariff_ngn_per_kwh: Number(document.getElementById("tariffInput").value)
+  };
+  await postJson("/api/settings", payload);
+  await refresh();
+}
+
+async function saveRoomConfig(roomId) {
+  const payload = {
+    room_id: roomId,
+    name: document.getElementById(`room-name-${roomId}`).value,
+    base_temp: Number(document.getElementById(`room-base-${roomId}`).value),
+    ac_auto: document.getElementById(`room-ac-auto-${roomId}`).checked,
+    light_auto: document.getElementById(`room-light-auto-${roomId}`).checked
+  };
+  await postJson("/api/rooms/config", payload);
+  await refresh();
+}
+
+function roomRow(room) {
+  const occupied = room.occupancy === 1;
+  const cfg = roomConfigMap[room.room_id] || {};
+  const name = cfg.name || room.name || room.room_id;
+  const base = Number(cfg.base_temp ?? room.base_temp ?? 25);
+  const acAuto = cfg.ac_auto !== undefined ? cfg.ac_auto : room.ac_auto;
+  const lightAuto = cfg.light_auto !== undefined ? cfg.light_auto : room.light_auto;
+  return `
+    <tr>
+      <td><input id="room-name-${room.room_id}" type="text" value="${name}" style="width:180px"></td>
+      <td><input id="room-base-${room.room_id}" type="number" step="0.1" value="${base.toFixed(1)}" style="width:90px"></td>
+      <td><input id="room-ac-auto-${room.room_id}" type="checkbox" ${acAuto ? "checked" : ""}></td>
+      <td><input id="room-light-auto-${room.room_id}" type="checkbox" ${lightAuto ? "checked" : ""}></td>
+      <td>
+        <span class="tag ${occupied ? "ok" : "idle"}">${occupied ? "Occupied" : "Vacant"}</span>
+        <button class="mini-toggle" style="margin-left:8px" onclick="saveRoomConfig('${room.room_id}')">Save</button>
+      </td>
+    </tr>`;
+}
+
+function liveRoomCard(room) {
+  const occupied = room.occupancy === 1;
+  return `
+    <article class="live-room">
+      <div class="live-head">
+        <h3>${room.name}</h3>
+        <span class="tag ${occupied ? "ok" : "idle"}">${occupied ? "OCCUPIED" : "EMPTY"}</span>
+      </div>
+      <div class="live-metrics">
+        <div><span>TEMP</span><strong>${room.temperature.toFixed(1)}°C</strong></div>
+        <div><span>PRESENCE</span><strong>${room.occupancy}</strong></div>
+        <div><span>LIGHT</span><strong>${Math.round(room.light)}/1023</strong></div>
+      </div>
+      <div class="live-appliance">
+        <span>Air Conditioner: <b>${room.ac_state}</b></span>
+        <div>
+          <button class="mini" onclick="setOverride('${room.room_id}','ac','on')">On</button>
+          <button class="mini" onclick="setOverride('${room.room_id}','ac','off')">Off</button>
+          <button class="mini" onclick="setOverride('${room.room_id}','ac','auto')">Auto</button>
+        </div>
+      </div>
+      <div class="live-appliance">
+        <span>Main Lights: <b>${room.light_state}</b></span>
+        <div>
+          <button class="mini" onclick="setOverride('${room.room_id}','light','on')">On</button>
+          <button class="mini" onclick="setOverride('${room.room_id}','light','off')">Off</button>
+          <button class="mini" onclick="setOverride('${room.room_id}','light','auto')">Auto</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+async function refresh() {
+  const [status, energy, settings, roomConfigs] = await Promise.all([
+    getJson("/api/status"),
+    getJson("/api/energy"),
+    getJson("/api/settings"),
+    getJson("/api/rooms/config")
+  ]);
+
+  roomConfigMap = Object.fromEntries((roomConfigs.rooms || []).map((r) => [r.room_id, r]));
+
+  document.getElementById("acLowerInput").value = Number(settings.ac_lower_threshold).toFixed(1);
+  document.getElementById("acUpperInput").value = Number(settings.ac_upper_threshold).toFixed(1);
+  document.getElementById("lightThresholdInput").value = Number(settings.light_threshold).toFixed(0);
+  document.getElementById("tariffInput").value = Number(settings.tariff_ngn_per_kwh).toFixed(2);
+
+  document.getElementById("simTime").textContent = `Simulated time: ${status.sim_time.replace("T", " ")}`;
+  document.getElementById("roomTableBody").innerHTML = status.rooms.map(roomRow).join("");
+  document.getElementById("liveRooms").innerHTML = status.rooms.map(liveRoomCard).join("");
+
+  document.getElementById("kpiTotal").textContent = `${energy.totals.total_kwh.toFixed(2)} kWh`;
+  document.getElementById("kpiCost").textContent = `₦${energy.cost_ngn.toFixed(0)}`;
+  document.getElementById("kpiAc").textContent = `${energy.totals.ac_kwh.toFixed(2)} kWh`;
+  document.getElementById("kpiLight").textContent = `${energy.totals.lighting_kwh.toFixed(2)} kWh`;
+
+  const without = energy.baseline_without_shems?.totals?.total_kwh || 0;
+  const withS = energy.totals.total_kwh || 0;
+  const savings = energy.savings?.percent || 0;
+  document.getElementById("withoutShems").textContent = `${without.toFixed(2)} kWh`;
+  document.getElementById("withShems").textContent = `${withS.toFixed(2)} kWh`;
+  document.getElementById("saveTag").textContent = `You saved ${savings.toFixed(1)}%`;
+  document.getElementById("withBar").style.width = `${Math.max(2, (withS / Math.max(1, without)) * 100)}%`;
+
+  roomEnergyChart.data.labels = status.rooms.map((r) => r.name);
+  roomEnergyChart.data.datasets[0].data = ROOM_ORDER.map((r) => energy.energy_by_room[r]?.ac || 0);
+  roomEnergyChart.data.datasets[1].data = ROOM_ORDER.map((r) => energy.energy_by_room[r]?.light || 0);
+  roomEnergyChart.update();
+
+  splitChart.data.datasets[0].data = [energy.totals.ac_kwh || 0, energy.totals.lighting_kwh || 0];
+  splitChart.update();
+
+  const histories = await Promise.all(
+    ROOM_ORDER.map(async (roomId) => {
+      const data = await getJson(`/api/history/${roomId}/temperature?limit=48`);
+      return [roomId, data.history || []];
+    })
+  );
+  const firstHistory = histories[0][1] || [];
+  tempTrendChart.data.labels = firstHistory.map((p) => p.timestamp.slice(11, 16));
+  const colors = ["#2E90FA", "#F79009", "#9E77ED", "#12B76A"];
+  tempTrendChart.data.datasets = histories.map(([roomId, hist], i) => ({
+    label: roomConfigMap[roomId]?.name || roomId,
+    data: hist.map((p) => p.value),
+    borderColor: colors[i],
+    backgroundColor: `${colors[i]}22`,
+    borderWidth: 2,
+    tension: 0.35,
+    pointRadius: 0,
+    fill: true
+  }));
+  tempTrendChart.update();
+}
+
+async function tickOnce() {
+  await postJson("/api/tick", { steps: 1 });
+  await refresh();
+}
+
+async function run24h() {
+  await postJson("/api/tick", { steps: 288 });
+  await refresh();
+}
+
+document.getElementById("stepBtn").addEventListener("click", tickOnce);
+document.getElementById("runBtn").addEventListener("click", run24h);
+document.getElementById("saveSettingsBtn").addEventListener("click", saveSettings);
+document.getElementById("autoBtn").addEventListener("click", async () => {
+  autoRun = !autoRun;
+  document.getElementById("autoBtn").textContent = autoRun ? "Auto: ON" : "Auto: OFF";
+  if (autoRun) {
+    ticker = setInterval(() => tickOnce().catch(console.error), 2000);
+  } else if (ticker) {
+    clearInterval(ticker);
+    ticker = null;
+  }
+});
+
+refresh().catch(console.error);
+ticker = setInterval(() => tickOnce().catch(console.error), 2000);
+</script>
+</body>
+</html>

@@ -19,7 +19,7 @@ export default function EnergyAnalytics({ rooms }) {
   const acUsage     = totalEnergy * 0.972;
   const lightUsage  = totalEnergy * 0.028;
   const withoutSHEMS = totalEnergy * 1.97;
-  const savingsPct   = (((withoutSHEMS - totalEnergy) / withoutSHEMS) * 100).toFixed(1);
+  const savingsPct   = withoutSHEMS > 0 ? (((withoutSHEMS - totalEnergy) / withoutSHEMS) * 100).toFixed(1) : '0.0';
 
   /* Energy by Room */
   const byRoomData = {
@@ -102,7 +102,7 @@ export default function EnergyAnalytics({ rooms }) {
           <div className="stat-label">
             <DollarSign size={13} color="#10B981" /> Estimated Cost
           </div>
-          <div className="stat-value">₦{Math.round(totalCost * 1180).toLocaleString()}</div>
+          <div className="stat-value">₦{Math.round(totalCost).toLocaleString()}</div>
           <div className="stat-sub good">
             <CheckCircle2 size={12} /> Within budget
           </div>

@@ -184,7 +184,7 @@ export default function RoomComparison({ rooms }) {
                         fontWeight: 700,
                         color: room.energy24h === Math.max(...rooms.map(r => r.energy24h)) ? '#DC2626' : 'inherit',
                       }}>
-                        {room.energy24h} kWh
+                        {room.energy24h.toFixed(3)} kWh
                       </span>
                       {room.energy24h === Math.max(...rooms.map(r => r.energy24h)) && (
                         <div style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>Peak Usage</div>
@@ -195,7 +195,7 @@ export default function RoomComparison({ rooms }) {
                         fontWeight: 800,
                         color: room.energy24h === Math.max(...rooms.map(r => r.energy24h)) ? '#DC2626' : 'inherit',
                       }}>
-                        ${room.estimatedCost.toFixed(2)}
+                        ₦{Math.round(room.estimatedCost).toLocaleString()}
                       </span>
                     </td>
                   </tr>
@@ -239,7 +239,7 @@ export default function RoomComparison({ rooms }) {
                 <div key={room.id} className="cons-item">
                   <div className="cons-header">
                     <span style={{ fontWeight: 600 }}>{room.name}</span>
-                    <span style={{ fontWeight: 700 }}>{room.energy24h} kWh</span>
+                    <span style={{ fontWeight: 700 }}>{room.energy24h.toFixed(3)} kWh</span>
                   </div>
                   <div className="bar-track">
                     <div className="cons-bar bar-fill" style={{ width: `${pct}%`, background: color }} />
