@@ -10,7 +10,7 @@ from shems.simulation import ShemsSimulation
 
 def create_app(db_path: str = "shems.db") -> Flask:
     app = Flask(__name__, template_folder="../templates")
-    CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
+    CORS(app)
     sim = ShemsSimulation(db_path=db_path)
     lock = Lock()
 
