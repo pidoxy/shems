@@ -234,22 +234,20 @@ export default function App() {
     <div className="layout">
       <Sidebar apiOnline={apiOnline} />
       <div className="main">
-        <Topbar onTick={tick} autoMode={autoMode} setAutoMode={setAutoMode} />
+        <Topbar onTick={tick} autoMode={autoMode} setAutoMode={setAutoMode} rooms={rooms} apiOnline={apiOnline} />
         {!apiOnline && (
           <div className="api-warn">
             <AlertTriangle size={13} strokeWidth={2} />
             Simulation mode — Flask backend not reachable at {BASE_URL}
           </div>
         )}
-        <div className="page">
-          <Routes>
-            <Route path="/"           element={<Dashboard rooms={rooms} onOverride={handleOverride} />} />
-            <Route path="/comparison" element={<RoomComparison rooms={rooms} />} />
-            <Route path="/analytics"  element={<EnergyAnalytics rooms={rooms} />} />
-            <Route path="/settings"   element={<SystemSettings rooms={rooms} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
-            <Route path="/room/:id"   element={<RoomDetail rooms={rooms} onOverride={handleOverride} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
-          </Routes>
-        </div>
+        <Routes>
+          <Route path="/"           element={<Dashboard rooms={rooms} onOverride={handleOverride} />} />
+          <Route path="/comparison" element={<RoomComparison rooms={rooms} />} />
+          <Route path="/analytics"  element={<EnergyAnalytics rooms={rooms} />} />
+          <Route path="/settings"   element={<SystemSettings rooms={rooms} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
+          <Route path="/room/:id"   element={<RoomDetail rooms={rooms} onOverride={handleOverride} apiOnline={apiOnline} baseUrl={BASE_URL} />} />
+        </Routes>
       </div>
     </div>
   );

@@ -20,6 +20,29 @@ const { labels, datasets } = generate24hTempData();
 // Thin out to every 4th label for readability
 const sparseLabels = labels.filter((_, i) => i % 4 === 0);
 
+function exportCsv(rooms) {
+  const headers = ['Room', 'Temperature (°C)', 'Occupancy', 'AC State', 'Light Level (lux)', 'Energy 24h (kWh)', 'Est. Cost (NGN)'];
+  const rows = rooms.map(r => [
+    r.name,
+    r.temperature,
+    r.presence ? 'Occupied' : 'Vacant',
+    r.acState,
+    r.lightLevel,
+    r.energy24h.toFixed(3),
+    Math.round(r.estimatedCost),
+  ]);
+  const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shems-live-metrics-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function RoomComparison({ rooms }) {
   const [activeRooms, setActiveRooms] = useState(new Set(ROOM_KEYS));
 
@@ -122,7 +145,11 @@ export default function RoomComparison({ rooms }) {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Live Metrics</span>
-          <button className="btn-link" style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <button
+            className="btn-link"
+            style={{ display:'flex', alignItems:'center', gap:5 }}
+            onClick={() => exportCsv(rooms)}
+          >
             <Download size={13} /> Export CSV
           </button>
         </div>
@@ -180,23 +207,29 @@ export default function RoomComparison({ rooms }) {
                       </span>
                     </td>
                     <td>
-                      <span style={{
-                        fontWeight: 700,
-                        color: room.energy24h === Math.max(...rooms.map(r => r.energy24h)) ? '#DC2626' : 'inherit',
-                      }}>
-                        {room.energy24h.toFixed(3)} kWh
-                      </span>
-                      {room.energy24h === Math.max(...rooms.map(r => r.energy24h)) && (
-                        <div style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>Peak Usage</div>
-                      )}
+                      {(() => {
+                        const isPeak = maxEnergy > 0 && room.energy24h === maxEnergy;
+                        return (
+                          <>
+                            <span style={{ fontWeight: 700, color: isPeak ? '#DC2626' : 'inherit' }}>
+                              {room.energy24h.toFixed(3)} kWh
+                            </span>
+                            {isPeak && (
+                              <div style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>Peak Usage</div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </td>
                     <td>
-                      <span style={{
-                        fontWeight: 800,
-                        color: room.energy24h === Math.max(...rooms.map(r => r.energy24h)) ? '#DC2626' : 'inherit',
-                      }}>
-                        ₦{Math.round(room.estimatedCost).toLocaleString()}
-                      </span>
+                      {(() => {
+                        const isPeak = maxEnergy > 0 && room.energy24h === maxEnergy;
+                        return (
+                          <span style={{ fontWeight: 800, color: isPeak ? '#DC2626' : 'inherit' }}>
+                            ₦{Math.round(room.estimatedCost).toLocaleString()}
+                          </span>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );

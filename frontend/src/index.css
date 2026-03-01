@@ -80,6 +80,44 @@ html, body, #root {
 .alert-badge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; background: var(--danger); color: #fff; border-radius: 50%; font-size: 9px; font-weight: 700; }
 .api-warn { display: flex; align-items: center; gap: 8px; padding: 7px 20px; background: var(--warning-50); border-bottom: 1px solid var(--warning-100); font-size: 12px; color: #92400E; font-weight: 500; flex-shrink: 0; }
 
+/* ─── Topbar dropdowns ─── */
+.topbar-btn-wrap { position: relative; display: flex; align-items: center; }
+.topbar-dropdown { position: absolute; top: calc(100% + 10px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); z-index: 200; }
+.notif-panel { width: 320px; }
+.profile-panel { width: 230px; }
+.dropdown-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-light); }
+.dropdown-header-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.dropdown-btn-ghost { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--text-muted); font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+.dropdown-btn-ghost:hover { background: var(--bg); color: var(--text); }
+.notif-list { max-height: 320px; overflow-y: auto; }
+.notif-item { display: flex; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border-light); cursor: default; transition: background .1s; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--bg); }
+.notif-item.unread { background: var(--primary-50); }
+.notif-item.unread:hover { background: #E0EDFF; }
+.notif-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.notif-dot.warning { background: var(--warning); }
+.notif-dot.danger  { background: var(--danger); }
+.notif-dot.info    { background: var(--primary); }
+.notif-dot.success { background: var(--success); }
+.notif-dot.muted   { background: var(--text-light); }
+.notif-body { flex: 1; min-width: 0; }
+.notif-msg  { font-size: 12.5px; font-weight: 500; color: var(--text); line-height: 1.4; }
+.notif-time { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.notif-empty { padding: 32px 16px; text-align: center; font-size: 13px; color: var(--text-light); }
+.dropdown-footer { padding: 9px 16px; border-top: 1px solid var(--border-light); text-align: center; }
+.profile-top { padding: 18px 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-light); }
+.profile-avatar-lg { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px; }
+.profile-name  { font-size: 14px; font-weight: 700; color: var(--text); }
+.profile-email { font-size: 12px; color: var(--text-muted); margin-top: -4px; }
+.profile-role  { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: var(--primary-50); color: var(--primary); letter-spacing: .3px; }
+.profile-menu  { padding: 6px; }
+.profile-menu-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border: none; background: none; width: 100%; text-align: left; text-decoration: none; transition: background .1s, color .1s; }
+.profile-menu-item:hover { background: var(--bg); color: var(--text); }
+.profile-menu-item.danger { color: var(--danger); }
+.profile-menu-item.danger:hover { background: var(--danger-50); }
+.profile-menu-sep { height: 1px; background: var(--border-light); margin: 4px 6px; }
+
 /* ─── Loading screen ─── */
 .loading-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); }
 .loading-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }

@@ -30,6 +30,7 @@ export default function Dashboard({ rooms, onOverride }) {
   return (
     <div className="page">
       <div className="room-grid">
+
         {rooms.map(room => {
           const color    = ROOM_COLORS[room.name] || '#64748B';
           const iconKey  = ROOM_ICON_KEY[room.name] || 'sofa';
@@ -105,10 +106,11 @@ export default function Dashboard({ rooms, onOverride }) {
                     </div>
                   </div>
                   <button
-                    className={`btn-override${!occupied && room.acState === 'OFF' ? ' disabled' : ''}`}
+                    className={`btn-override${room._acOverride ? ' active' : ''}`}
+                    title={room._acOverride ? 'Click to clear AC override' : 'Click to override AC'}
                     onClick={() => onOverride(room.id, 'ac')}
                   >
-                    Override
+                    {room._acOverride ? 'Override ✓' : 'Override'}
                   </button>
                 </div>
 
@@ -129,10 +131,11 @@ export default function Dashboard({ rooms, onOverride }) {
                     </div>
                   </div>
                   <button
-                    className={`btn-override${!occupied && room.lightState === 'OFF' ? ' disabled' : ''}`}
+                    className={`btn-override${room._lightOverride ? ' active' : ''}`}
+                    title={room._lightOverride ? 'Click to clear light override' : 'Click to override lights'}
                     onClick={() => onOverride(room.id, 'light')}
                   >
-                    Override
+                    {room._lightOverride ? 'Override ✓' : 'Override'}
                   </button>
                 </div>
               </div>

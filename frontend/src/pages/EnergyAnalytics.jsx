@@ -82,7 +82,7 @@ export default function EnergyAnalytics({ rooms }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1.5px solid #E2E8F0', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#1E293B', background: '#fff' }}>
           <CalendarDays size={14} strokeWidth={1.8} color="#64748B" />
-          Today: 13 Feb 2026
+          {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           <span style={{ color: '#94A3B8' }}>▾</span>
         </div>
       </div>

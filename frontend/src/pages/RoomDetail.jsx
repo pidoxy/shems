@@ -28,7 +28,23 @@ function generateTempHistory(baseTemp) {
 
 const ACTIVITY_COLORS = { motion: '#10B981', light: '#3B82F6', alert: '#EF4444', ac: '#EF4444', vacated: '#3B82F6' };
 
-export default function RoomDetail({ rooms }) {
+function exportActivityLog(roomName, log) {
+  const header = 'TIME,EVENT,SOURCE,VALUE\n';
+  const rows = log.map(ev =>
+    [ev.time, `"${ev.event}"`, `"${ev.source}"`, `"${ev.value}"`].join(',')
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${roomName.replace(/\s+/g, '-').toLowerCase()}-activity-log.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export default function RoomDetail({ rooms, onOverride }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -80,9 +96,18 @@ export default function RoomDetail({ rooms }) {
         <span className={`badge ${room.presence ? 'badge-occupied' : 'badge-empty'}`} style={{ fontSize: 11 }}>
           {room.presence ? 'OCCUPIED' : 'EMPTY'}
         </span>
+        {(room._acOverride || room._lightOverride) && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', background: '#FFFBEB', color: '#92400E', borderRadius: 6, border: '1px solid #FDE68A' }}>
+            Override Active
+          </span>
+        )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" style={{ padding: '7px 10px' }}><Settings size={14} strokeWidth={1.8} /></button>
-          <button className="btn btn-outline" style={{ padding: '7px 10px' }}><Bell size={14} strokeWidth={1.8} /></button>
+          <button className="btn btn-outline" style={{ padding: '7px 10px' }} title="Room settings (coming soon)" onClick={() => navigate('/settings')}>
+            <Settings size={14} strokeWidth={1.8} />
+          </button>
+          <button className="btn btn-outline" style={{ padding: '7px 10px' }} title="Alerts (coming soon)">
+            <Bell size={14} strokeWidth={1.8} />
+          </button>
         </div>
       </div>
 
@@ -108,7 +133,7 @@ export default function RoomDetail({ rooms }) {
           </div>
           <div className="detail-stat-sub" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Clock size={11} />
-            {room.presence ? 'Since 18:20 (2h 15m)' : 'No presence detected'}
+            {room.presence ? 'Presence detected' : 'No presence detected'}
           </div>
           <div style={{ marginTop: 12, opacity: room.presence ? .18 : .08 }}>
             {room.presence
@@ -151,9 +176,16 @@ export default function RoomDetail({ rooms }) {
                 <Wind size={16} strokeWidth={1.8} color="#3B82F6" /> Air Conditioner
               </div>
               <span className={`state-badge ${room.acState.toLowerCase()}`}>{room.acState}</span>
+              {room._acOverride && (
+                <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#92400E', background: '#FEF3C7', padding: '1px 6px', borderRadius: 4 }}>OVERRIDE</span>
+              )}
             </div>
-            <label className="toggle">
-              <input type="checkbox" checked={room.acState !== 'OFF'} readOnly />
+            <label className="toggle" title={room._acOverride ? 'Clear AC override' : 'Toggle AC override'}>
+              <input
+                type="checkbox"
+                checked={room.acState !== 'OFF'}
+                onChange={() => onOverride && onOverride(room.id, 'ac')}
+              />
               <span className="slider" />
             </label>
           </div>
@@ -183,9 +215,16 @@ export default function RoomDetail({ rooms }) {
                 <Lightbulb size={16} strokeWidth={1.8} color={room.lightState === 'ON' ? '#F59E0B' : '#CBD5E1'} /> Smart Lighting
               </div>
               <span className={`state-badge ${room.lightState.toLowerCase()}`}>{room.lightState}</span>
+              {room._lightOverride && (
+                <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#92400E', background: '#FEF3C7', padding: '1px 6px', borderRadius: 4 }}>OVERRIDE</span>
+              )}
             </div>
-            <label className="toggle">
-              <input type="checkbox" checked={room.lightState === 'ON'} readOnly />
+            <label className="toggle" title={room._lightOverride ? 'Clear light override' : 'Toggle light override'}>
+              <input
+                type="checkbox"
+                checked={room.lightState === 'ON'}
+                onChange={() => onOverride && onOverride(room.id, 'light')}
+              />
               <span className="slider" style={room.lightState === 'ON' ? { background: '#10B981' } : {}} />
             </label>
           </div>
@@ -210,7 +249,7 @@ export default function RoomDetail({ rooms }) {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Temperature History (2hr)</span>
-          <button className="btn-link">View Report</button>
+          <button className="btn-link" onClick={() => navigate('/analytics')}>View Report</button>
         </div>
         <div className="card-body" style={{ height: 240 }}>
           <Line data={lineData} options={lineOpts} />
@@ -221,7 +260,11 @@ export default function RoomDetail({ rooms }) {
       <div className="card">
         <div className="card-header">
           <span className="card-title">Recent Activity</span>
-          <button className="btn-link" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <button
+            className="btn-link"
+            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+            onClick={() => exportActivityLog(room.name, ACTIVITY_LOG)}
+          >
             <Download size={13} /> Export Log
           </button>
         </div>

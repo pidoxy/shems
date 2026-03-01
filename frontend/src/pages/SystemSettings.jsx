@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Thermometer, Lightbulb, Zap, Home, Pencil, Ban, Check } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Thermometer, Lightbulb, Zap, Home, Pencil, Ban, Check, X, Plus } from 'lucide-react';
 import { ROOM_ICON_KEY } from '../data/mockData';
 import RoomIcon from '../components/RoomIcon';
 
@@ -21,7 +21,66 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
   const [tariffRate, setTariffRate] = useState(68);
   const [roomCfgs,   setRoomCfgs]   = useState(DEFAULT_ROOMS);
   const [saved,      setSaved]      = useState(false);
-  const [editingId,  setEditingId]  = useState(null);
+
+  // Slider track refs
+  const acTrackRef    = useRef(null);
+  const lightTrackRef = useRef(null);
+
+  // Keep latest values accessible from drag closures without stale state
+  const acLowRef  = useRef(acLow);   acLowRef.current  = acLow;
+  const acHighRef = useRef(acHigh);  acHighRef.current = acHigh;
+
+  // Drag: AC range (two handles: 'low' | 'high')
+  const startDragAc = useCallback((handle, e) => {
+    e.preventDefault();
+    const track = acTrackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+
+    const onMove = (ev) => {
+      const x   = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      const val = Math.round(16 + x * 16); // maps 0–1 → 16–32 °C
+      if (handle === 'low') {
+        setAcLow(Math.max(16, Math.min(val, acHighRef.current - 1)));
+      } else {
+        setAcHigh(Math.min(32, Math.max(val, acLowRef.current + 1)));
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup',   onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, []);
+
+  // Drag: Light threshold (single handle)
+  const startDragLight = useCallback((e) => {
+    e.preventDefault();
+    const track = lightTrackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+
+    const onMove = (ev) => {
+      const x   = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      setMinLight(Math.round(x * 1023));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup',   onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup',   onUp);
+  }, []);
+
+  // Edit state
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingTemp, setEditingTemp] = useState(24);
+
+  // Add-room form state
+  const [addingRoom,  setAddingRoom]  = useState(false);
+  const [newName,     setNewName]     = useState('');
+  const [newBaseTemp, setNewBaseTemp] = useState(24);
 
   // Load settings + room configs from backend on mount (when connected)
   useEffect(() => {
@@ -84,6 +143,54 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
     }
   };
 
+  // Start editing a room's base temp
+  const startEdit = (room) => {
+    setEditingId(room.id);
+    setEditingTemp(room.baseTemp);
+    setAddingRoom(false);
+  };
+
+  // Save inline base-temp edit
+  const saveEdit = (id) => {
+    const temp = Number(editingTemp);
+    if (!temp || temp < 16 || temp > 32) return;
+    setRoomCfgs(rs => rs.map(r => r.id === id ? { ...r, baseTemp: temp } : r));
+    if (apiOnline && baseUrl) {
+      fetch(`${baseUrl}/api/rooms/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: id, base_temp: temp }),
+      }).catch(() => {});
+    }
+    setEditingId(null);
+  };
+
+  // Remove a room
+  const removeRoom = (id) => {
+    setRoomCfgs(rs => rs.filter(r => r.id !== id));
+    if (editingId === id) setEditingId(null);
+  };
+
+  // Add a new room (frontend config only — backend doesn't support dynamic creation)
+  const commitAddRoom = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const id = trimmed.toLowerCase().replace(/\s+/g, '_');
+    if (roomCfgs.find(r => r.id === id)) return; // duplicate
+    const iconKey = ROOM_ICON_KEY[trimmed] ?? 'sofa';
+    setRoomCfgs(rs => [...rs, {
+      id,
+      name:       trimmed,
+      iconKey,
+      baseTemp:   Number(newBaseTemp) || 24,
+      acAuto:     true,
+      lightsAuto: true,
+    }]);
+    setNewName('');
+    setNewBaseTemp(24);
+    setAddingRoom(false);
+  };
+
   // Save global settings to backend
   const handleSave = async () => {
     if (apiOnline && baseUrl) {
@@ -114,7 +221,15 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
           <h1>System Settings</h1>
           <p>Manage energy thresholds, device automation rules, and tariff configurations.</p>
         </div>
-        <button className="btn btn-outline">Documentation</button>
+        <a
+          href="https://github.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-outline"
+          style={{ textDecoration: 'none' }}
+        >
+          Documentation
+        </a>
       </div>
 
       {/* Settings cards */}
@@ -151,14 +266,38 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
               <span>16°C</span><span>32°C</span>
             </div>
-            <div style={{ position: 'relative', height: 6, borderRadius: 3, background: '#E2E8F0' }}>
+            <div
+              ref={acTrackRef}
+              style={{ position: 'relative', height: 6, borderRadius: 3, background: '#E2E8F0', cursor: 'pointer', userSelect: 'none' }}
+              onClick={e => {
+                const rect = acTrackRef.current.getBoundingClientRect();
+                const x    = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const val  = Math.round(16 + x * 16);
+                const dLow  = Math.abs(val - acLow);
+                const dHigh = Math.abs(val - acHigh);
+                if (dLow <= dHigh) setAcLow(Math.max(16, Math.min(val, acHigh - 1)));
+                else               setAcHigh(Math.min(32, Math.max(val, acLow + 1)));
+              }}
+            >
               <div style={{ position: 'absolute', left: `${(acLow - 16) / 16 * 100}%`, right: `${100 - (acHigh - 16) / 16 * 100}%`, height: '100%', background: '#BFDBFE', borderRadius: 3 }} />
-              {[acLow, acHigh].map((v, i) => (
-                <div key={i} style={{ position: 'absolute', left: `${(v - 16) / 16 * 100}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 16, height: 16, borderRadius: '50%', background: '#3B82F6', border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+              {[['low', acLow], ['high', acHigh]].map(([handle, v]) => (
+                <div
+                  key={handle}
+                  onPointerDown={e => startDragAc(handle, e)}
+                  style={{
+                    position: 'absolute', left: `${(v - 16) / 16 * 100}%`,
+                    top: '50%', transform: 'translate(-50%,-50%)',
+                    width: 16, height: 16, borderRadius: '50%',
+                    background: '#3B82F6', border: '2px solid #fff',
+                    boxShadow: '0 1px 4px rgba(0,0,0,.2)',
+                    cursor: 'ew-resize', zIndex: 1,
+                  }}
+                  title={handle === 'low' ? `Cool threshold: ${v}°C` : `Heat threshold: ${v}°C`}
+                />
               ))}
             </div>
           </div>
-          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>Drag handles to adjust comfort range.</p>
+          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>Drag handles or click track to adjust. Use inputs for exact values.</p>
         </div>
 
         {/* Lighting Control */}
@@ -182,11 +321,30 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>
               <span>Dark</span><span>Bright</span>
             </div>
-            <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'linear-gradient(to right,#1E293B,#FEF9C3)' }}>
-              <div style={{ position: 'absolute', left: `${lightPct}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 16, height: 16, borderRadius: '50%', background: '#F59E0B', border: '2px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} />
+            <div
+              ref={lightTrackRef}
+              style={{ position: 'relative', height: 6, borderRadius: 3, background: 'linear-gradient(to right,#1E293B,#FEF9C3)', cursor: 'pointer', userSelect: 'none' }}
+              onClick={e => {
+                const rect = lightTrackRef.current.getBoundingClientRect();
+                const x   = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                setMinLight(Math.round(x * 1023));
+              }}
+            >
+              <div
+                onPointerDown={startDragLight}
+                style={{
+                  position: 'absolute', left: `${lightPct}%`,
+                  top: '50%', transform: 'translate(-50%,-50%)',
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#F59E0B', border: '2px solid #fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,.2)',
+                  cursor: 'ew-resize', zIndex: 1,
+                }}
+                title={`Trigger: ${minLight} lux`}
+              />
             </div>
           </div>
-          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>Lights turn on when ambient light drops below this level.</p>
+          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>Drag handle or click track to set trigger level.</p>
         </div>
 
         {/* Tariff Config */}
@@ -228,9 +386,15 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             <div className="settings-card-title" style={{ marginBottom: 2 }}>
               <Home size={15} color="#6366F1" strokeWidth={2} /> Room Configurations
             </div>
-            <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>Individual override settings for connected rooms.</p>
+            <p style={{ fontSize: 12, color: '#94A3B8', margin: 0 }}>Individual automation settings for connected rooms.</p>
           </div>
-          <button className="btn btn-primary" style={{ fontSize: 12, padding: '6px 14px' }}>+ Add Room</button>
+          <button
+            className="btn btn-primary"
+            style={{ fontSize: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 5 }}
+            onClick={() => { setAddingRoom(true); setEditingId(null); }}
+          >
+            <Plus size={13} /> Add Room
+          </button>
         </div>
         <table className="room-config-table">
           <thead>
@@ -246,6 +410,7 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             {roomCfgs.map(r => {
               const bg  = ROOM_BG[r.iconKey]  ?? '#F8FAFC';
               const clr = ROOM_CLR[r.iconKey] ?? '#64748B';
+              const isEditing = editingId === r.id;
               return (
                 <tr key={r.id}>
                   <td>
@@ -256,7 +421,29 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
                       <span style={{ fontWeight: 500, fontSize: 14 }}>{r.name}</span>
                     </div>
                   </td>
-                  <td style={{ fontSize: 14, color: '#374151' }}>{r.baseTemp}°C</td>
+                  <td>
+                    {isEditing ? (
+                      <div className="unit-input" style={{ width: 110 }}>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={editingTemp}
+                          min={16}
+                          max={32}
+                          style={{ width: 64, padding: '3px 6px', fontSize: 13 }}
+                          onChange={e => setEditingTemp(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') saveEdit(r.id);
+                            if (e.key === 'Escape') setEditingId(null);
+                          }}
+                          autoFocus
+                        />
+                        <span className="unit-label">°C</span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#374151' }}>{r.baseTemp}°C</span>
+                    )}
+                  </td>
                   <td>
                     <label className="toggle">
                       <input type="checkbox" checked={r.acAuto} onChange={() => toggleAc(r.id)} />
@@ -270,24 +457,101 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
                     </label>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="icon-btn" title="Edit" onClick={() => setEditingId(r.id)}>
-                        <Pencil size={13} />
-                      </button>
-                      <button className="icon-btn icon-btn-danger" title="Remove">
-                        <Ban size={13} />
-                      </button>
-                    </div>
+                    {isEditing ? (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="icon-btn"
+                          title="Save"
+                          style={{ color: 'var(--success)' }}
+                          onClick={() => saveEdit(r.id)}
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          title="Cancel"
+                          onClick={() => setEditingId(null)}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="icon-btn" title="Edit base temperature" onClick={() => startEdit(r)}>
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          className="icon-btn icon-btn-danger"
+                          title="Remove room"
+                          onClick={() => removeRoom(r.id)}
+                        >
+                          <Ban size={13} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
             })}
+
+            {/* Add-room inline form row */}
+            {addingRoom && (
+              <tr style={{ background: '#F8FAFC' }}>
+                <td>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Dining Room"
+                    value={newName}
+                    onChange={e => setNewName(e.target.value)}
+                    style={{ fontSize: 13, padding: '4px 8px', width: '100%' }}
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitAddRoom();
+                      if (e.key === 'Escape') setAddingRoom(false);
+                    }}
+                  />
+                </td>
+                <td>
+                  <div className="unit-input" style={{ width: 110 }}>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={newBaseTemp}
+                      min={16}
+                      max={32}
+                      style={{ width: 64, padding: '3px 6px', fontSize: 13 }}
+                      onChange={e => setNewBaseTemp(e.target.value)}
+                    />
+                    <span className="unit-label">°C</span>
+                  </div>
+                </td>
+                <td colSpan={2} style={{ color: '#94A3B8', fontSize: 12 }}>Defaults to Auto On</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className="icon-btn"
+                      title="Add room"
+                      style={{ color: 'var(--success)' }}
+                      onClick={commitAddRoom}
+                    >
+                      <Check size={13} />
+                    </button>
+                    <button
+                      className="icon-btn"
+                      title="Cancel"
+                      onClick={() => setAddingRoom(false)}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
-        <div style={{ marginTop: 8, fontSize: 12, color: '#94A3B8' }}>Showing {roomCfgs.length} of {roomCfgs.length} rooms</div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
-          <button className="btn btn-sm" style={{ fontSize: 12 }}>‹</button>
-          <button className="btn btn-sm" style={{ fontSize: 12 }}>›</button>
+        <div style={{ marginTop: 8, fontSize: 12, color: '#94A3B8' }}>
+          Showing {roomCfgs.length} room{roomCfgs.length !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -296,6 +560,7 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
         <button className="btn btn-outline" onClick={() => {
           setAcLow(24); setAcHigh(28); setMinLight(300); setTariffRate(68);
           setRoomCfgs(DEFAULT_ROOMS);
+          setEditingId(null); setAddingRoom(false);
         }}>Reset to Default</button>
         <button className="btn btn-primary" onClick={handleSave}>
           {saved ? <><Check size={14} /> Saved!</> : 'Save Settings'}
