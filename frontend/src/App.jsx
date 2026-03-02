@@ -110,10 +110,11 @@ async function postOverride(roomId, appliance, mode) {
 }
 
 export default function App() {
-  const [rooms, setRooms]       = useState(INITIAL_ROOMS);
-  const [autoMode, setAutoMode] = useState(false);
+  const [rooms, setRooms]         = useState(INITIAL_ROOMS);
+  const [autoMode, setAutoMode]   = useState(false);
   const [apiOnline, setApiOnline] = useState(false);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading]     = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const autoRef = useRef(autoMode);
   autoRef.current = autoMode;
 
@@ -232,9 +233,17 @@ export default function App() {
 
   return (
     <div className="layout">
-      <Sidebar apiOnline={apiOnline} />
+      <Sidebar apiOnline={apiOnline} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main">
-        <Topbar onTick={tick} autoMode={autoMode} setAutoMode={setAutoMode} rooms={rooms} apiOnline={apiOnline} />
+        <Topbar
+          onTick={tick}
+          autoMode={autoMode}
+          setAutoMode={setAutoMode}
+          rooms={rooms}
+          apiOnline={apiOnline}
+          onMenuClick={() => setSidebarOpen(v => !v)}
+          sidebarOpen={sidebarOpen}
+        />
         {!apiOnline && (
           <div className="api-warn">
             <AlertTriangle size={13} strokeWidth={2} />

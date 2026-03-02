@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, SkipForward, Thermometer, Wind, Lightbulb,
-  CheckCircle, Settings, LogOut, User, X, Zap,
+  CheckCircle, Settings, LogOut, User, X, Zap, Menu,
 } from 'lucide-react';
 
 const PAGE_TITLES = {
@@ -22,7 +22,7 @@ function fmtTime(d) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function Topbar({ onTick, autoMode, setAutoMode, rooms = [], apiOnline }) {
+export default function Topbar({ onTick, autoMode, setAutoMode, rooms = [], apiOnline, onMenuClick }) {
   const [time, setTime] = useState(() => fmtTime(new Date()));
   const loc = useLocation();
   const navigate = useNavigate();
@@ -122,6 +122,10 @@ export default function Topbar({ onTick, autoMode, setAutoMode, rooms = [], apiO
   return (
     <header className="topbar">
       <div className="topbar-left">
+        {/* Hamburger — mobile only */}
+        <button className="hamburger" onClick={onMenuClick} aria-label="Open navigation">
+          <Menu size={18} strokeWidth={2} />
+        </button>
         <span className="topbar-title">{title}</span>
       </div>
 

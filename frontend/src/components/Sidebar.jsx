@@ -8,30 +8,42 @@ const links = [
   { to: '/settings',   Icon: Settings,         label: 'System Settings' },
 ];
 
-export default function Sidebar({ apiOnline }) {
+export default function Sidebar({ apiOnline, open, onClose }) {
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Zap size={16} color="#F59E0B" fill="#F59E0B" strokeWidth={2} />
-        <span>SHEMS</span>
-      </div>
-      <nav className="sidebar-nav">
-        {links.map(({ to, Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-          >
-            <Icon size={15} strokeWidth={2} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
-      <div className="sidebar-footer">
-        <span className={`status-dot ${apiOnline ? 'online' : 'offline'}`} />
-        <span className="footer-text">v1.0.2 · {apiOnline ? 'Live' : 'Simulation'}</span>
-      </div>
-    </aside>
+    <>
+      {/* Backdrop — mobile only, shown when drawer is open */}
+      <div
+        className={`sidebar-backdrop${open ? ' open' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside className={`sidebar${open ? ' open' : ''}`}>
+        <div className="sidebar-logo">
+          <Zap size={16} color="#F59E0B" fill="#F59E0B" strokeWidth={2} />
+          <span>SHEMS</span>
+        </div>
+
+        <nav className="sidebar-nav">
+          {links.map(({ to, Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              onClick={onClose}        /* close drawer when a page is selected */
+            >
+              <Icon size={15} strokeWidth={2} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <span className={`status-dot ${apiOnline ? 'online' : 'offline'}`} />
+          <span className="footer-text">v1.0.2 · {apiOnline ? 'Live' : 'Simulation'}</span>
+        </div>
+      </aside>
+    </>
   );
 }

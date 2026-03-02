@@ -1,0 +1,186 @@
+/*
+ * Smart Home Energy Management System (SHEMS)
+ * CSC419 - Tinkercad Arduino Simulation
+ * 
+ * Hardware:
+ *   - Arduino Uno
+ *   - LM35 Temperature Sensor → A0
+ *   - PIR Motion Sensor (HC-SR501) → Pin 2
+ *   - LDR + 10kΩ resistor (voltage divider) → A1
+ *   - Relay Module: AC relay → Pin 7, Light relay → Pin 8
+ *   - LEDs: AC indicator → Pin 11, Light indicator → Pin 12
+ * 
+ * Control Logic:
+ *   AC FSM: OFF → STANDBY (occupied, temp<28) → COOLING (temp≥28) → OFF (unoccupied)
+ *   Hysteresis: COOLING stays until temp < 24°C
+ *   Lights: ON only when occupied AND light < 300
+ */
+
+// Pin definitions
+const int TEMP_PIN = A0;       // LM35 temperature sensor
+const int PIR_PIN = 2;         // PIR motion sensor
+const int LDR_PIN = A1;        // LDR light sensor
+const int AC_RELAY = 7;        // Relay for AC
+const int LIGHT_RELAY = 8;     // Relay for lights
+const int AC_LED = 11;         // LED indicator for AC
+const int LIGHT_LED = 12;      // LED indicator for lights
+
+// Thresholds (matching Python simulation)
+const float TEMP_UPPER = 28.0;  // Start cooling above this
+const float TEMP_LOWER = 24.0;  // Stop cooling below this (hysteresis)
+const int LIGHT_THRESHOLD = 300; // Light level below which lights turn on
+
+// AC FSM states
+enum ACState { AC_OFF, AC_STANDBY, AC_COOLING };
+ACState acState = AC_OFF;
+
+// Light state
+bool lightOn = false;
+
+// Timing
+unsigned long lastPrintTime = 0;
+const unsigned long PRINT_INTERVAL = 2000; // Print every 2 seconds
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Configure pins
+  pinMode(PIR_PIN, INPUT);
+  pinMode(AC_RELAY, OUTPUT);
+  pinMode(LIGHT_RELAY, OUTPUT);
+  pinMode(AC_LED, OUTPUT);
+  pinMode(LIGHT_LED, OUTPUT);
+  
+  // Start with everything off
+  digitalWrite(AC_RELAY, LOW);
+  digitalWrite(LIGHT_RELAY, LOW);
+  digitalWrite(AC_LED, LOW);
+  digitalWrite(LIGHT_LED, LOW);
+  
+  Serial.println("========================================");
+  Serial.println("SHEMS - Smart Home Energy Management");
+  Serial.println("========================================");
+  Serial.println("Temp(C) | Occupied | Light | AC State | Light State");
+  Serial.println("--------|----------|-------|----------|------------");
+}
+
+void loop() {
+  // ===== READ SENSORS =====
+  
+  // Temperature: LM35 outputs 10mV per degree Celsius
+  // Arduino ADC: 5V / 1024 steps = 4.88mV per step
+  // Temperature = (ADC value * 5.0 / 1024.0) * 100.0
+  int tempRaw = analogRead(TEMP_PIN);
+  float temperature = (tempRaw * 5.0 / 1024.0) * 100.0;
+  
+  // PIR: HIGH when motion detected
+  bool occupied = digitalRead(PIR_PIN) == HIGH;
+  
+  // LDR: Higher value = brighter (with voltage divider)
+  int lightLevel = analogRead(LDR_PIN);
+  
+  // ===== AC CONTROL FSM =====
+  // Implements Algorithm 2 from Chapter 2
+  
+  ACState prevAcState = acState;
+  
+  if (!occupied) {
+    // Rule: AC always OFF when room is empty
+    acState = AC_OFF;
+  } else {
+    // Room is occupied — evaluate temperature
+    switch (acState) {
+      case AC_OFF:
+        if (temperature >= TEMP_UPPER) {
+          acState = AC_COOLING;
+        } else {
+          acState = AC_STANDBY;
+        }
+        break;
+        
+      case AC_STANDBY:
+        if (temperature >= TEMP_UPPER) {
+          acState = AC_COOLING;
+        }
+        // Stay in STANDBY if temp is between thresholds
+        break;
+        
+      case AC_COOLING:
+        if (temperature < TEMP_LOWER) {
+          // Hysteresis: only stop cooling below lower threshold
+          acState = AC_STANDBY;
+        }
+        // Stay COOLING if temp is between 24-28°C
+        break;
+    }
+  }
+  
+  // ===== LIGHTING CONTROL =====
+  // Implements Algorithm 3 from Chapter 2
+  
+  bool prevLightOn = lightOn;
+  
+  if (occupied && lightLevel < LIGHT_THRESHOLD) {
+    lightOn = true;
+  } else {
+    lightOn = false;
+  }
+  
+  // ===== DRIVE ACTUATORS =====
+  
+  bool acOn = (acState == AC_COOLING);
+  digitalWrite(AC_RELAY, acOn ? HIGH : LOW);
+  digitalWrite(AC_LED, acOn ? HIGH : LOW);
+  
+  digitalWrite(LIGHT_RELAY, lightOn ? HIGH : LOW);
+  digitalWrite(LIGHT_LED, lightOn ? HIGH : LOW);
+  
+  // ===== SERIAL OUTPUT =====
+  
+  unsigned long now = millis();
+  if (now - lastPrintTime >= PRINT_INTERVAL) {
+    lastPrintTime = now;
+    
+    // Print sensor readings and states
+    Serial.print(temperature, 1);
+    Serial.print("    | ");
+    Serial.print(occupied ? "YES     " : "NO      ");
+    Serial.print(" | ");
+    Serial.print(lightLevel);
+    Serial.print("   | ");
+    
+    // AC state string
+    switch (acState) {
+      case AC_OFF:      Serial.print("OFF     "); break;
+      case AC_STANDBY:  Serial.print("STANDBY "); break;
+      case AC_COOLING:  Serial.print("COOLING "); break;
+    }
+    Serial.print(" | ");
+    Serial.println(lightOn ? "ON" : "OFF");
+    
+    // Log transitions
+    if (acState != prevAcState) {
+      Serial.print("  >> AC transition: ");
+      printACState(prevAcState);
+      Serial.print(" -> ");
+      printACState(acState);
+      Serial.println();
+    }
+    if (lightOn != prevLightOn) {
+      Serial.print("  >> Light transition: ");
+      Serial.print(prevLightOn ? "ON" : "OFF");
+      Serial.print(" -> ");
+      Serial.println(lightOn ? "ON" : "OFF");
+    }
+  }
+  
+  delay(500); // Sample every 500ms
+}
+
+void printACState(ACState state) {
+  switch (state) {
+    case AC_OFF:      Serial.print("OFF"); break;
+    case AC_STANDBY:  Serial.print("STANDBY"); break;
+    case AC_COOLING:  Serial.print("COOLING"); break;
+  }
+}

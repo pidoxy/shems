@@ -323,33 +323,151 @@ input:checked + .slider::before { transform: translateX(16px); }
 .chip-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 
 /* ─── Responsive ─── */
+
+/* Hamburger hidden on desktop */
+.hamburger { display: none; }
+
+/* Sidebar backdrop hidden on desktop */
+.sidebar-backdrop { display: none; }
+
+/* ── 1100 px: wide tablets ── */
 @media (max-width: 1100px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid  { grid-template-columns: repeat(2, 1fr); }
   .score-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (max-width: 900px) {
+/* ── 900 px: small laptops / large tablets — icon-only sidebar ── */
+@media (min-width: 641px) and (max-width: 900px) {
   :root { --sidebar-w: 56px; }
-  .nav-item span { display: none; }
-  .nav-item { justify-content: center; padding: 8px; }
+  .nav-item span          { display: none; }
+  .nav-item               { justify-content: center; padding: 8px; }
   .sidebar-logo span:last-child { display: none; }
-  .sidebar-logo { justify-content: center; padding: 14px 8px; }
-  .sidebar-footer { justify-content: center; padding: 12px 8px; }
+  .sidebar-logo           { justify-content: center; padding: 14px 8px; }
+  .sidebar-footer         { justify-content: center; padding: 12px 8px; }
   .sidebar-footer .footer-text { display: none; }
-  .settings-grid { grid-template-columns: 1fr; }
-  .two-col { grid-template-columns: 1fr; }
-  .detail-devices { grid-template-columns: 1fr; }
-  .room-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 0 12px; gap: 6px; }
+  .settings-grid          { grid-template-columns: 1fr; }
+  .two-col                { grid-template-columns: 1fr; }
+  .detail-devices         { grid-template-columns: 1fr; }
+  .topbar                 { padding: 0 12px; gap: 6px; }
   .btn-auto .btn-text, .btn-step .btn-text { display: none; }
-  .btn-auto, .btn-step { padding: 5px 8px; }
+  .btn-auto, .btn-step    { padding: 5px 8px; }
 }
 
+/* ── 640 px: phones — full mobile layout ── */
 @media (max-width: 640px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-  .detail-stat-grid { grid-template-columns: 1fr; }
-  .page { padding: 16px; }
-  .room-sensors { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+  /* Sidebar becomes a fixed overlay drawer */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 4px 0 24px rgba(15,23,42,.12);
+    /* Override icon-only rules – show full labels */
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Ensure drawer always shows full labels */
+  .nav-item             { justify-content: flex-start; padding: 8px 10px; }
+  .nav-item span        { display: inline; }
+  .sidebar-logo         { justify-content: flex-start; padding: 14px 16px; }
+  .sidebar-logo span    { display: inline; }
+  .sidebar-footer       { justify-content: flex-start; padding: 12px 16px; }
+  .sidebar-footer .footer-text { display: inline; }
+
+  /* Dim backdrop when drawer is open */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .4);
+    z-index: 299;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  .sidebar-backdrop.open { opacity: 1; pointer-events: all; }
+
+  /* Hamburger button */
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-radius: var(--radius-xs);
+    flex-shrink: 0;
+  }
+  .hamburger:hover { background: var(--bg); color: var(--text); }
+
+  /* Topbar */
+  .topbar         { padding: 0 12px; gap: 6px; }
   .topbar-divider { display: none; }
-  .clock { display: none; }
+  .clock          { display: none; }
+  .btn-auto .btn-text, .btn-step .btn-text { display: none; }
+  .btn-auto, .btn-step { padding: 5px 8px; }
+
+  /* Page padding */
+  .page { padding: 14px; }
+
+  /* Grids → single column */
+  .room-grid      { grid-template-columns: 1fr; }
+  .two-col        { grid-template-columns: 1fr; }
+  .settings-grid  { grid-template-columns: 1fr; }
+  .detail-devices { grid-template-columns: 1fr; }
+
+  /* Stat grids */
+  .stat-grid        { grid-template-columns: repeat(2, 1fr); }
+  .score-grid       { grid-template-columns: repeat(2, 1fr); }
+  .detail-stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Sensors stay 3-col on phone (small boxes) */
+  .room-sensors { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .sensor-value { font-size: 13px; }
+
+  /* Page header: stack title + action on separate lines */
+  .page-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px; }
+  .chip-tabs   { gap: 5px; }
+  .chip        { font-size: 11.5px; padding: 4px 10px; }
+
+  /* Dropdown panels: cap to screen width */
+  .notif-panel    { width: min(320px, calc(100vw - 24px)); }
+  .profile-panel  { width: min(230px, calc(100vw - 24px)); }
+  .topbar-dropdown { right: -4px; }
+
+  /* Typography scale-down */
+  .page-header h1 { font-size: 18px; }
+  .stat-value     { font-size: 20px; }
+  .detail-stat-value { font-size: 24px; }
+  .card-title     { font-size: 13px; }
+
+  /* Room config table: allow scroll on small screens */
+  .room-config-table { min-width: 460px; }
+  .room-config-table th { padding: 8px 10px; }
+  .room-config-table td { padding: 9px 10px; }
+
+  /* Activity log table: tighten padding so all columns fit */
+  .table-wrap th { padding: 8px 10px; }
+  .table-wrap td { padding: 10px 10px; }
+
+  /* Score cards: tighter */
+  .score-card { padding: 12px 14px; }
+  .score-room { font-size: 13px; }
+
+  /* Back link */
+  .back-link { font-size: 12px; }
+}
+
+/* ── 380 px: very small phones ── */
+@media (max-width: 380px) {
+  .stat-grid        { grid-template-columns: 1fr; }
+  .detail-stat-grid { grid-template-columns: 1fr; }
+  .score-grid       { grid-template-columns: 1fr; }
+  .room-sensors     { grid-template-columns: repeat(3, 1fr); }
+  .btn-auto, .btn-step { display: none; }  /* hide sim controls — too cramped */
 }

@@ -396,6 +396,7 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             <Plus size={13} /> Add Room
           </button>
         </div>
+        <div className="table-wrap">
         <table className="room-config-table">
           <thead>
             <tr>
@@ -550,6 +551,7 @@ export default function SystemSettings({ apiOnline, baseUrl }) {
             )}
           </tbody>
         </table>
+        </div>
         <div style={{ marginTop: 8, fontSize: 12, color: '#94A3B8' }}>
           Showing {roomCfgs.length} room{roomCfgs.length !== 1 ? 's' : ''}
         </div>
