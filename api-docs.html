@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Home API Documentation — Room 1</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d2e; --border: #2a2d3e;
+    --text: #e0e0e0; --muted: #888; --accent: #4fc3f7;
+    --green: #4caf50; --orange: #ff9800; --red: #f44336;
+    --code-bg: #12141e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .hero { background: linear-gradient(135deg, #1a1d2e, #2a2d3e); border: 1px solid var(--border); border-radius: 16px; padding: 40px 32px; margin-bottom: 32px; text-align: center; }
+  .hero h1 { font-size: 2rem; color: #fff; margin-bottom: 8px; }
+  .hero h1 span { color: var(--accent); font-weight: 400; }
+  .hero p { color: var(--muted); font-size: 0.95rem; }
+  .base-url { display: inline-block; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; margin-top: 16px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9rem; color: var(--accent); word-break: break-all; cursor: pointer; position: relative; transition: border-color 0.2s; }
+  .base-url:hover { border-color: var(--accent); }
+  .base-url::after { content: '📋 click to copy'; position: absolute; top: -24px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--muted); font-family: 'Segoe UI', sans-serif; opacity: 0; transition: opacity 0.2s; }
+  .base-url:hover::after { opacity: 1; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge.get { background: #1a3a2a; color: var(--green); border: 1px solid #2a5a3a; }
+  .badge.ws { background: #1a2a3a; color: var(--accent); border: 1px solid #2a4a6a; }
+  .badge.cors { background: #3a2a1a; color: var(--orange); border: 1px solid #5a4a2a; }
+  .badges { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Cards */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .card.endpoint::before { background: linear-gradient(90deg, var(--green), var(--accent)); }
+  .card.example::before { background: linear-gradient(90deg, var(--orange), var(--red)); }
+  .card.info::before { background: linear-gradient(90deg, var(--accent), #9c27b0); }
+
+  h2 { font-size: 1.3rem; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 1rem; color: var(--accent); margin: 16px 0 8px; }
+
+  /* Endpoint header */
+  .endpoint-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .method { background: #1a3a2a; color: var(--green); padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; font-family: monospace; }
+  .path { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 1.1rem; color: #fff; }
+  .endpoint-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 12px; }
+
+  /* Code blocks */
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem; line-height: 1.5; margin: 8px 0 16px; position: relative; }
+  code { font-family: 'SF Mono', 'Fira Code', monospace; }
+  .inline-code { background: var(--code-bg); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 0.85rem; }
+  th { text-align: left; padding: 8px 12px; background: var(--code-bg); color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  td:first-child { font-family: monospace; color: var(--accent); white-space: nowrap; }
+  td:nth-child(2) { color: var(--orange); font-family: monospace; font-size: 0.8rem; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(79, 195, 247, 0.03); }
+
+  /* Try it */
+  .try-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #1a3a2a, #2a4a3a); border: 1px solid var(--green); color: var(--green); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+  .try-btn:hover { background: var(--green); color: #000; }
+  .try-result { margin-top: 12px; display: none; }
+  .try-result.show { display: block; }
+  .try-result pre { border-color: var(--green); }
+
+  /* Live indicator */
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 4px var(--green); } 50% { box-shadow: 0 0 12px var(--green); } }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tab { padding: 6px 14px; background: transparent; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; color: var(--muted); cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+  .tab.active { background: var(--code-bg); border-color: var(--border); color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 24px; color: #444; font-size: 0.75rem; border-top: 1px solid var(--border); margin-top: 32px; }
+
+  /* Copy button */
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--border); border: none; color: var(--muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; transition: all 0.2s; }
+  .copy-btn:hover { background: var(--accent); color: #000; }
+
+  /* Hardware table */
+  .hw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+  .hw-item { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .hw-item .pin { color: var(--orange); font-family: monospace; font-weight: 600; }
+  .hw-item .name { color: #fff; font-size: 0.9rem; margin-top: 4px; }
+  .hw-item .desc { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+  @media (max-width: 600px) {
+    .container { padding: 12px; }
+    .hero { padding: 24px 16px; }
+    .hero h1 { font-size: 1.4rem; }
+    .card { padding: 16px; }
+    pre { font-size: 0.75rem; padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Smart Home <span>API Docs</span></h1>
+    <p>ESP32 IoT Monitoring System — Room 1 — Real-Time REST API</p>
+    <div class="base-url" onclick="copyBase(this)">https://apartments-locked-surprised-presence.trycloudflare.com</div>
+    <div class="badges">
+      <span class="badge get">REST API</span>
+      <span class="badge ws">WebSocket</span>
+      <span class="badge cors">CORS Enabled</span>
+    </div>
+  </div>
+
+  <!-- ENDPOINT: /api/sensors -->
+  <div class="card endpoint">
+    <div class="endpoint-header">
+      <span class="method">GET</span>
+      <span class="path">/api/sensors</span>
+    </div>
+    <p class="endpoint-desc">Returns current sensor readings from Room 1. Updates every ~500ms on the device.</p>
+
+    <button class="try-btn" onclick="tryEndpoint('/api/sensors', 'sensors-result')">
+      <span class="live-dot"></span> Try it live
+    </button>
+    <div class="try-result" id="sensors-result">
+      <pre><code id="sensors-json">Loading...</code></pre>
+    </div>
+
+    <h3>Response Fields</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+      <tr><td>tempC</td><td>float</td><td>Temperature in Celsius</td></tr>
+      <tr><td>tempF</td><td>float</td><td>Temperature in Fahrenheit</td></tr>
+      <tr><td>tempV</td><td>float</td><td>LM35 sensor voltage (V)</td></tr>
+      <tr><td>tempRaw</td><td>int</td><td>Raw ADC value (0–4095)</td></tr>
+      <tr><td>tempOk</td><td>bool</td><td><code class="inline-code">false</code> if LM35 is disconnected</td></tr>
+      <tr><td>lightPct</td><td>int</td><td>Ambient light level (0–100%)</td></tr>
+      <tr><td>lightV</td><td>float</td><td>LDR sensor voltage (V)</td></tr>
+      <tr><td>lightRaw</td><td>int</td><td>Raw ADC value (0–4095)</td></tr>
+      <tr><td>motion</td><td>bool</td><td>PIR motion currently detected</td></tr>
+      <tr><td>motionCount</td><td>int</td><td>Total motion triggers since boot</td></tr>
+      <tr><td>redLed</td><td>bool</td><td>Red LED state (temp ≥ 30°C)</td></tr>
+      <tr><td>ylwLed</td><td>bool</td><td>Yellow LED state (light &lt; 20%)</td></tr>
+      <tr><td>uptime</td><td>int</td><td>Seconds since ESP32 booted</td></tr>
+      <tr><td>timestamp</td><td>int</td><td>ESP32 millis() at response time</td></tr>
+    </table>
+
+    <h3>Example Response</h3>
+    <pre><code>{
+  "tempC": 27.3,
+  "tempF": 81.1,
+  "tempV": 0.273,
+  "tempRaw": 339,
+  "tempOk": true,
+  "lightPct": 65,
+  "lightV": 2.14,
+  "lightRaw": 2663,
+  "motion": false,
+  "motionCount": 12,
+  "redLed": false,
+  "ylwLed": false,
+  "uptime": 3600,
+  "timestamp": 3645000
+}</code></pre>
+  </div>
+
+  <!-- ENDPOINT: /api/status -->
+  <div class="card endpoint">
+    <div class="endpoint-header">
+      <span class="method">GET</span>
+      <span class="path">/api/status</span>
+    </div>
+    <p class="endpoint-desc">Returns system and network information about the ESP32 board.</p>
+
+    <button class="try-btn" onclick="tryEndpoint('/api/status', 'status-result')">
+      <span class="live-dot"></span> Try it live
+    </button>
+    <div class="try-result" id="status-result">
+      <pre><code id="status-json">Loading...</code></pre>
+    </div>
+
+    <h3>Response Fields</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+      <tr><td>board</td><td>string</td><td>Board identifier</td></tr>
+      <tr><td>room</td><td>string</td><td>Room name</td></tr>
+      <tr><td>uptime</td><td>int</td><td>Seconds since boot</td></tr>
+      <tr><td>freeHeap</td><td>int</td><td>Free RAM in bytes</td></tr>
+      <tr><td>wifiMode</td><td>string</td><td>"Station" or "AP"</td></tr>
+      <tr><td>wifiSSID</td><td>string</td><td>Connected network name</td></tr>
+      <tr><td>wsClients</td><td>int</td><td>Active WebSocket connections</td></tr>
+      <tr><td>adcCalibrated</td><td>bool</td><td>Factory ADC calibration found</td></tr>
+      <tr><td>ip</td><td>string</td><td>ESP32 local IP address</td></tr>
+      <tr><td>rssi</td><td>int</td><td>WiFi signal strength (dBm)</td></tr>
+    </table>
+  </div>
+
+  <!-- ENDPOINT: / -->
+  <div class="card endpoint">
+    <div class="endpoint-header">
+      <span class="method">GET</span>
+      <span class="path">/</span>
+    </div>
+    <p class="endpoint-desc">Returns the full real-time HTML dashboard with live charts, LED indicators, and motion alerts. Open in a browser.</p>
+    <a href="https://apartments-locked-surprised-presence.trycloudflare.com" target="_blank" class="try-btn" style="text-decoration:none;">
+      Open Dashboard ↗
+    </a>
+  </div>
+
+  <!-- CODE EXAMPLES -->
+  <div class="card example">
+    <h2>💻 Code Examples</h2>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(event, 'ex-js')">JavaScript</div>
+      <div class="tab" onclick="switchTab(event, 'ex-py')">Python</div>
+      <div class="tab" onclick="switchTab(event, 'ex-curl')">cURL</div>
+      <div class="tab" onclick="switchTab(event, 'ex-poll')">Polling</div>
+    </div>
+
+    <div class="tab-content active" id="ex-js">
+      <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>const API = "https://apartments-locked-surprised-presence.trycloudflare.com";
+
+const data = await fetch(`${API}/api/sensors`).then(r => r.json());
+console.log(`Temp: ${data.tempC}°C, Light: ${data.lightPct}%`);
+console.log(`Motion: ${data.motion ? "ACTIVE" : "Clear"}`);</code></pre>
+    </div>
+
+    <div class="tab-content" id="ex-py">
+      <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>import requests
+
+API = "https://apartments-locked-surprised-presence.trycloudflare.com"
+
+data = requests.get(f"{API}/api/sensors").json()
+print(f"Temperature: {data['tempC']}°C")
+print(f"Light: {data['lightPct']}%")
+print(f"Motion: {'Yes' if data['motion'] else 'No'}")
+
+status = requests.get(f"{API}/api/status").json()
+print(f"Uptime: {status['uptime']}s, Free RAM: {status['freeHeap']} bytes")</code></pre>
+    </div>
+
+    <div class="tab-content" id="ex-curl">
+      <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Get sensor data
+curl https://apartments-locked-surprised-presence.trycloudflare.com/api/sensors
+
+# Pretty print
+curl -s https://apartments-locked-surprised-presence.trycloudflare.com/api/sensors | python3 -m json.tool
+
+# Get system status
+curl https://apartments-locked-surprised-presence.trycloudflare.com/api/status</code></pre>
+    </div>
+
+    <div class="tab-content" id="ex-poll">
+      <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>const API = "https://apartments-locked-surprised-presence.trycloudflare.com";
+
+// Poll every 2 seconds and update page elements
+setInterval(async () => {
+  try {
+    const d = await fetch(`${API}/api/sensors`).then(r => r.json());
+    document.getElementById("temp").textContent = d.tempC + "°C";
+    document.getElementById("light").textContent = d.lightPct + "%";
+    document.getElementById("motion").textContent = d.motion ? "ACTIVE" : "Clear";
+  } catch (e) {
+    console.error("ESP32 offline:", e);
+  }
+}, 2000);</code></pre>
+    </div>
+  </div>
+
+  <!-- HARDWARE -->
+  <div class="card info">
+    <h2>🔧 Hardware</h2>
+    <p style="color:var(--muted); font-size:0.9rem; margin-bottom:12px;">ESP32 30-pin DevKit (CH340 / USB-C)</p>
+    <div class="hw-grid">
+      <div class="hw-item">
+        <div class="pin">D32</div>
+        <div class="name">LM35 Temperature</div>
+        <div class="desc">Analog sensor, 10mV/°C</div>
+      </div>
+      <div class="hw-item">
+        <div class="pin">D34</div>
+        <div class="name">LDR Light</div>
+        <div class="desc">Light-dependent resistor</div>
+      </div>
+      <div class="hw-item">
+        <div class="pin">D26</div>
+        <div class="name">HC-SR501 PIR</div>
+        <div class="desc">Passive infrared motion</div>
+      </div>
+      <div class="hw-item">
+        <div class="pin">D16</div>
+        <div class="name">Red LED</div>
+        <div class="desc">Temp ≥ 30°C warning</div>
+      </div>
+      <div class="hw-item">
+        <div class="pin">D17</div>
+        <div class="name">Yellow LED</div>
+        <div class="desc">Light &lt; 20% indicator</div>
+      </div>
+      <div class="hw-item">
+        <div class="pin">D2</div>
+        <div class="name">Built-in LED</div>
+        <div class="desc">Motion activity flash</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card info">
+    <h2>📝 Notes</h2>
+    <table>
+      <tr><td style="color:var(--muted);">Auth</td><td style="color:var(--text); font-family:inherit">None — all endpoints are public</td></tr>
+      <tr><td style="color:var(--muted);">CORS</td><td style="color:var(--text); font-family:inherit">Enabled — <code class="inline-code">Access-Control-Allow-Origin: *</code></td></tr>
+      <tr><td style="color:var(--muted);">Rate limit</td><td style="color:var(--text); font-family:inherit">None enforced. Avoid polling faster than 500ms.</td></tr>
+      <tr><td style="color:var(--muted);">Errors</td><td style="color:var(--text); font-family:inherit">Always returns 200. Check <code class="inline-code">tempOk</code> for sensor issues.</td></tr>
+      <tr><td style="color:var(--muted);">Tunnel URL</td><td style="color:var(--text); font-family:inherit">Changes when cloudflared restarts. Update accordingly.</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    ESP32 Smart Home Monitor — Room 1 — API Documentation<br>
+    Built with ESP32 + Arduino + WebSockets + Cloudflare Tunnel
+  </div>
+
+</div>
+
+<script>
+const BASE = "https://apartments-locked-surprised-presence.trycloudflare.com";
+
+function copyBase(el) {
+  navigator.clipboard.writeText(el.textContent);
+  const orig = el.textContent;
+  el.textContent = "✓ Copied!";
+  setTimeout(() => el.textContent = orig, 1500);
+}
+
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector("code").textContent;
+  navigator.clipboard.writeText(code);
+  btn.textContent = "✓ Copied";
+  setTimeout(() => btn.textContent = "Copy", 1500);
+}
+
+function switchTab(e, id) {
+  const card = e.target.closest(".card");
+  card.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  card.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  e.target.classList.add("active");
+  card.querySelector("#" + id).classList.add("active");
+}
+
+async function tryEndpoint(path, resultId) {
+  const container = document.getElementById(resultId);
+  const codeEl = container.querySelector("code");
+  container.classList.add("show");
+  codeEl.textContent = "Fetching...";
+  try {
+    const res = await fetch(BASE + path);
+    const data = await res.json();
+    codeEl.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    codeEl.textContent = "Error: " + e.message + "\n\n(Is the ESP32 powered on and cloudflared running?)";
+  }
+}
+</script>
+</body>
+</html>

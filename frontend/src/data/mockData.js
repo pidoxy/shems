@@ -3,6 +3,9 @@
 
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// ESP32 hardware API — update this URL whenever cloudflared restarts
+export const ESP32_URL = import.meta.env.VITE_ESP32_URL || 'https://apartments-locked-surprised-presence.trycloudflare.com';
+
 export const ROOM_COLORS = {
   'Living Room': '#3B82F6',
   'Bedroom': '#8B5CF6',

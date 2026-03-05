@@ -8,7 +8,9 @@ const links = [
   { to: '/settings',   Icon: Settings,         label: 'System Settings' },
 ];
 
-export default function Sidebar({ apiOnline, open, onClose }) {
+export default function Sidebar({ apiOnline, espOnline, open, onClose }) {
+  const statusLabel = espOnline ? 'Hardware Live' : apiOnline ? 'Backend Live' : 'Simulation';
+  const isOnline = espOnline || apiOnline;
   return (
     <>
       {/* Backdrop — mobile only, shown when drawer is open */}
@@ -40,8 +42,8 @@ export default function Sidebar({ apiOnline, open, onClose }) {
         </nav>
 
         <div className="sidebar-footer">
-          <span className={`status-dot ${apiOnline ? 'online' : 'offline'}`} />
-          <span className="footer-text">v1.0.2 · {apiOnline ? 'Live' : 'Simulation'}</span>
+          <span className={`status-dot ${isOnline ? 'online' : 'offline'}`} />
+          <span className="footer-text">v1.0.2 · {statusLabel}</span>
         </div>
       </aside>
     </>
